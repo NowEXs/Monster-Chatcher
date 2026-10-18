@@ -3,6 +3,7 @@
 #include "WRAIController.h"
 #include "BehaviorTree/BlackboardComponent.h"
 #include "NavigationSystem.h"
+#include "GameFramework/CharacterMovementComponent.h"
 
 UWRBTTask_PickMovePoint::UWRBTTask_PickMovePoint() { NodeName = TEXT("WR Pick Move Point"); }
 EBTNodeResult::Type UWRBTTask_PickMovePoint::ExecuteTask(UBehaviorTreeComponent& OwnerComp, uint8*)
@@ -19,6 +20,16 @@ EBTNodeResult::Type UWRBTTask_PickMovePoint::ExecuteTask(UBehaviorTreeComponent&
     // Reachable samples avoid selecting the far side of a wall. Flee must make
     // positive progress away from the stimulus; failure falls through to Wait.
     float BestScore = bFlee ? FVector::DistSquared2D(Origin, Threat) + 100.f : -1.f;
+    if (bFlee)
+    {
+        AWRCreature* WR_Pawn = Cast<AWRCreature>(Pawn);
+        WR_Pawn->ChangeToFleeSpeed();
+    }
+    else
+    {
+        AWRCreature* WR_Pawn = Cast<AWRCreature>(Pawn);
+        WR_Pawn->ChangeToShySpeed();
+    }
     for (int32 I = 0; I < (bFlee ? 16 : 4); ++I)
     {
         FNavLocation Candidate;

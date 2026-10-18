@@ -205,10 +205,21 @@ void AWRAIController::RefreshDecision()
         BB->ClearValue(TEXT("TargetActor"));
         BB->ClearValue(TEXT("InvestigateLocation"));
         ClearFocus(EAIFocusPriority::Gameplay);
+
         if (Best || bHaveMemory)
         {
-            BB->SetValueAsVector(TEXT("ThreatLocation"), Best ? Best->GetActorLocation() : MemoryLocation);
-            BB->SetValueAsBool(TEXT("ShouldFlee"), true);
+            const FVector NewThreatLoc = Best ? Best->GetActorLocation() : MemoryLocation;
+            const FVector CurrentThreatLoc = BB->GetValueAsVector(TEXT("ThreatLocation"));
+            
+            if (!BB->GetValueAsBool(TEXT("ShouldFlee")) || FVector::DistSquared(NewThreatLoc, CurrentThreatLoc) > 22500.f)
+            {
+                BB->SetValueAsVector(TEXT("ThreatLocation"), NewThreatLoc);
+                BB->SetValueAsBool(TEXT("ShouldFlee"), true);
+            }
+        }
+        else
+        {
+            BB->SetValueAsBool(TEXT("ShouldFlee"), false);
         }
         return;
     }

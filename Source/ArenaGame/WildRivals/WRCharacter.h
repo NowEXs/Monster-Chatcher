@@ -46,6 +46,8 @@ public:
     virtual void ServerHeal_Implementation() override;
     virtual void DoMove(float Right, float Forward) override;
     virtual void DoJumpStart() override;
+    
+    
     bool HasClearPathTo(const AActor* Other) const;
     void FreezeForRoundEnd();
 protected:
@@ -69,6 +71,7 @@ public:
     UPROPERTY(ReplicatedUsing=OnRep_CreatureState, BlueprintReadOnly, Category="Wild Rivals|Creature") EWRCreatureState CreatureState = EWRCreatureState::Wild;
     UPROPERTY(ReplicatedUsing=OnRep_CreatureState, BlueprintReadOnly, Category="Wild Rivals|Creature") TObjectPtr<AWRPlayerState> OwnerPlayer;
     UPROPERTY(EditDefaultsOnly, Category="Wild Rivals|Movement") float ShySpeed = 340.f;
+    UPROPERTY(EditDefaultsOnly, Category="Wild Rivals|Movement") float ShyFleeSpeed = 500.f;
     UPROPERTY(EditDefaultsOnly, Category="Wild Rivals|Movement") float AggressiveSpeed = 410.f;
     UPROPERTY(EditDefaultsOnly, Category="Wild Rivals|Movement") float CompanionSpeed = 540.f;
     UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Wild Rivals|Movement") float FollowDistance = 250.f;
@@ -80,6 +83,9 @@ public:
     void RemoveFromMatch();
     virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
     virtual void EndPlay(const EEndPlayReason::Type Reason) override;
+    virtual void ChangeToFleeSpeed();
+    virtual void ChangeToShySpeed();
+    
 protected:
     virtual void BeginPlay() override;
     virtual void HandleDefeated(AController* InstigatorController) override;

@@ -210,6 +210,7 @@ void AWRCharacter::DoMove(float Right, float Forward)
     if (!bDefeated && (!GS || GS->Round.Phase != EWRRoundPhase::Finished)) Super::DoMove(Right, Forward);
 }
 void AWRCharacter::DoJumpStart() { if (!bDefeated) Super::DoJumpStart(); }
+
 void AWRCharacter::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
 {
     Super::GetLifetimeReplicatedProps(OutLifetimeProps);
@@ -321,6 +322,22 @@ void AWRCreature::EndPlay(const EEndPlayReason::Type Reason)
     }
     Super::EndPlay(Reason);
 }
+
+void AWRCreature::ChangeToFleeSpeed()
+{
+    GetCharacterMovement()->MaxWalkSpeed = ShyFleeSpeed;
+    
+    UE_LOG(LogTemp, Warning, TEXT("%s | Flee speed: %.1f | Actual MaxWalkSpeed: %.1f"),
+    *GetName(),
+    ShyFleeSpeed,
+    GetCharacterMovement()->MaxWalkSpeed);
+}
+
+void AWRCreature::ChangeToShySpeed()
+{
+    GetCharacterMovement()->MaxWalkSpeed = ShySpeed;
+}
+
 void AWRCreature::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
 {
     Super::GetLifetimeReplicatedProps(OutLifetimeProps);
