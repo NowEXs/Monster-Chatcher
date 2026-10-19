@@ -38,8 +38,20 @@ public:
     UFUNCTION(BlueprintImplementableEvent, Category="Wild Rivals|Visuals") void OnAttackVisual(FVector ImpactLocation);
     UFUNCTION(NetMulticast, Unreliable) void MulticastWRSwing(FVector ImpactLocation);
     
-    UPROPERTY(EditDefaultsOnly, Category="Wild Rivals|Effects")
-    TObjectPtr<class UNiagaraSystem> MeleeAttackFX;
+    UPROPERTY(EditDefaultsOnly, Category="Wild Rivals|Combat")
+    TObjectPtr<USoundBase> AttackSound;
+
+    UPROPERTY(EditDefaultsOnly, Category="Wild Rivals|Combat")
+    TObjectPtr<UNiagaraSystem> AttackFX;
+    
+    UPROPERTY(EditDefaultsOnly, Category="Wild Rivals|Audio")
+    TObjectPtr<USoundBase> CaptureSuccessSound;
+
+    UFUNCTION(NetMulticast, Unreliable)
+    void MulticastCaptureSuccess(FVector CaptureLocation);
+    
+    // UPROPERTY(EditDefaultsOnly, Category="Wild Rivals|Effects")
+    // TObjectPtr<class UNiagaraSystem> MeleeAttackFX;
     
     UFUNCTION() void OnRep_Team();
     UFUNCTION() void OnRep_Defeated();
@@ -94,6 +106,7 @@ public:
     
     UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Wild Rivals|Audio")
     TObjectPtr<UAudioComponent> FleeAudioComponent;
+    
     
     UFUNCTION(NetMulticast, Unreliable)
     void MulticastPlayFleeSound();

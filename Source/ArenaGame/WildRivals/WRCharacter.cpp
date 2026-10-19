@@ -203,6 +203,15 @@ void AWRCharacter::HandleDefeated(AController*)
     MarkDefeated();
     if (AWRGameMode* GM = GetWorld()->GetAuthGameMode<AWRGameMode>()) GM->HandlePlayerDefeated(this);
 }
+
+void AWRCharacter::MulticastCaptureSuccess_Implementation(FVector CaptureLocation)
+{
+    if (CaptureSuccessSound)
+    {
+        UGameplayStatics::PlaySoundAtLocation(this, CaptureSuccessSound, CaptureLocation);
+    }
+}
+
 void AWRCharacter::OnRep_Team() { OnTeamVisualChanged(); }
 void AWRCharacter::OnRep_Defeated()
 {
@@ -216,6 +225,24 @@ void AWRCharacter::OnRep_Defeated()
 void AWRCharacter::MulticastWRSwing_Implementation(FVector ImpactLocation)
 {
     OnAttackVisual(ImpactLocation);
+    
+    if (AttackSound)
+    {
+        UGameplayStatics::PlaySoundAtLocation(
+            this, 
+            AttackSound, 
+            GetActorLocation()
+        );
+    }
+    
+    if (AttackFX)
+    {
+        UNiagaraFunctionLibrary::SpawnSystemAtLocation(
+            GetWorld(), 
+            AttackFX, 
+            ImpactLocation
+        );
+    }
 }
 void AWRCharacter::FreezeForRoundEnd()
 {
@@ -324,6 +351,11 @@ bool AWRCreature::TryCapture(AWRCharacter* Player)
     // Commit BEFORE awarding: a second request cannot award the same creature.
     CreatureState = EWRCreatureState::Resolved;
     GM->AwardCapture(PS);
+    
+    if (Player)
+    {
+        Player->MulticastCaptureSuccess(GetActorLocation());
+    }
     DestroyBodyAndController();
     return true;
 }
@@ -403,11 +435,6 @@ void AWRCreature::EndPlay(const EEndPlayReason::Type Reason)
 void AWRCreature::ChangeToFleeSpeed()
 {
     GetCharacterMovement()->MaxWalkSpeed = ShyFleeSpeed;
-    
-    UE_LOG(LogTemp, Warning, TEXT("%s | Flee speed: %.1f | Actual MaxWalkSpeed: %.1f"),
-    *GetName(),
-    ShyFleeSpeed,
-    GetCharacterMovement()->MaxWalkSpeed);
 }
 
 void AWRCreature::ChangeToShySpeed()
