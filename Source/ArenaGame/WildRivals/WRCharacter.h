@@ -2,8 +2,10 @@
 
 #include "CoreMinimal.h"
 #include "ArenaGameCharacter.h"
+#include "NiagaraSystem.h"
 #include "WRCharacter.generated.h"
 
+class UNiagaraSystem;
 class AWRPlayerState;
 class UInputAction;
 class UHealthComponent;
@@ -35,6 +37,10 @@ public:
     UFUNCTION(BlueprintImplementableEvent, Category="Wild Rivals|Visuals") void OnDefeatedVisual();
     UFUNCTION(BlueprintImplementableEvent, Category="Wild Rivals|Visuals") void OnAttackVisual(FVector ImpactLocation);
     UFUNCTION(NetMulticast, Unreliable) void MulticastWRSwing(FVector ImpactLocation);
+    
+    UPROPERTY(EditDefaultsOnly, Category="Wild Rivals|Effects")
+    TObjectPtr<class UNiagaraSystem> MeleeAttackFX;
+    
     UFUNCTION() void OnRep_Team();
     UFUNCTION() void OnRep_Defeated();
     virtual FGenericTeamId GetGenericTeamId() const override;
@@ -79,6 +85,22 @@ public:
     UFUNCTION(BlueprintPure, Category="Wild Rivals|Creature") AWRCharacter* GetOwnerCharacter() const;
     UFUNCTION(BlueprintImplementableEvent, Category="Wild Rivals|Visuals") void OnCreatureVisualChanged();
     UFUNCTION() void OnRep_CreatureState();
+    
+    UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Wild Rivals|Effects")
+    TObjectPtr<class UNiagaraComponent> FleeFXComponent;
+    
+    UPROPERTY(EditDefaultsOnly, Category="Wild Rivals|Audio")
+    TObjectPtr<USoundBase> FleeSound;
+    
+    UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Wild Rivals|Audio")
+    TObjectPtr<UAudioComponent> FleeAudioComponent;
+    
+    UFUNCTION(NetMulticast, Unreliable)
+    void MulticastPlayFleeSound();
+
+    UFUNCTION(NetMulticast, Unreliable)
+    void MulticastSetFleeFXActive(bool bActive);
+    
     bool TryCapture(AWRCharacter* Player);
     void RemoveFromMatch();
     virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
@@ -87,6 +109,7 @@ public:
     virtual void ChangeToShySpeed();
     
 protected:
+    virtual void Tick(float DeltaTime) override;
     virtual void BeginPlay() override;
     virtual void HandleDefeated(AController* InstigatorController) override;
 private:

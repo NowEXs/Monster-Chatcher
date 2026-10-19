@@ -17,14 +17,19 @@
 #include "Perception/AISense_Hearing.h"
 #include "Perception/AISense_Damage.h"
 #include "Net/UnrealNetwork.h"
+#include "NiagaraFunctionLibrary.h"
+#include "NiagaraComponent.h"
+#include "Components/AudioComponent.h"
+#include "Sound/SoundBase.h"
 
 AWRCharacter::AWRCharacter()
 {
     bReplicates = true;
     SetReplicateMovement(true);
     MeleeDamage = 25.f;
-    MeleeRange = 200.f;
+    MeleeRange = 300.f;
     MinAttackInterval = 0.8f;
+    MeleeHalfAngle = 60.f;
 }
 
 void AWRCharacter::BeginPlay()
@@ -124,6 +129,7 @@ void AWRCharacter::ServerMeleeAttack_Implementation()
     const float Now = GetWorld()->GetTimeSeconds();
     // Ordinary repeated input is ignored, not treated as a validation failure/disconnect.
     if (Now - LastAttackTime < MinAttackInterval) return;
+    
     LastAttackTime = Now;
     AWRCharacter* Best = nullptr;
     float BestDistance = FMath::Square(MeleeRange);
@@ -141,7 +147,21 @@ void AWRCharacter::ServerMeleeAttack_Implementation()
     if (Best)
     {
         Impact = Best->GetActorLocation();
-        UGameplayStatics::ApplyDamage(Best, MeleeDamage, GetController(), this, UDamageType::StaticClass());
+        FTimerHandle AttackDelayHandle;
+        
+        TWeakObjectPtr<AWRCharacter> WeakTarget(Best);
+        GetWorld()->GetTimerManager().SetTimer(
+            AttackDelayHandle,
+            FTimerDelegate::CreateWeakLambda(this, [this, WeakTarget]()
+            {
+                if (WeakTarget.IsValid() && this->IsAlive())
+                {
+                    UGameplayStatics::ApplyDamage(WeakTarget.Get(), MeleeDamage, GetController(), this, UDamageType::StaticClass());
+                }
+            }),
+            0.2f,
+            false
+            );
     }
     // Do not let AI investigate its own footsteps/swings.
     if (IsPlayerControlled()) UAISense_Hearing::ReportNoiseEvent(GetWorld(), GetActorLocation(), 1.f, this, SwingNoiseRange, TEXT("Swing"));
@@ -193,7 +213,10 @@ void AWRCharacter::OnRep_Defeated()
         OnDefeatedVisual();
     }
 }
-void AWRCharacter::MulticastWRSwing_Implementation(FVector ImpactLocation) { OnAttackVisual(ImpactLocation); }
+void AWRCharacter::MulticastWRSwing_Implementation(FVector ImpactLocation)
+{
+    OnAttackVisual(ImpactLocation);
+}
 void AWRCharacter::FreezeForRoundEnd()
 {
     GetCharacterMovement()->StopMovementImmediately();
@@ -226,7 +249,37 @@ AWRCreature::AWRCreature()
     RespawnProtectionSeconds = 0.f;
     MeleeDamage = 15.f;
     MinAttackInterval = 1.2f;
+    
+    PrimaryActorTick.bCanEverTick = true;
+
+    FleeFXComponent = CreateDefaultSubobject<UNiagaraComponent>(TEXT("FleeFXComponent"));
+    if (GetMesh())
+    {
+        FleeFXComponent->SetupAttachment(GetMesh());
+        FleeFXComponent->SetRelativeLocation(FVector(0.f, 0.f, -5.f)); 
+    }
+    else
+    {
+        FleeFXComponent->SetupAttachment(GetRootComponent());
+    }
+    FleeFXComponent->bAutoActivate = false;
 }
+
+void AWRCreature::Tick(float DeltaTime)
+{
+    Super::Tick(DeltaTime);
+
+    if (HasAuthority())
+    {
+        const float CurrentSpeed = GetVelocity().Size2D();
+        const bool bIsFleeing = (GetCharacterMovement()->MaxWalkSpeed >= ShyFleeSpeed - 10.f);
+        const bool bShouldPlayFX = bIsFleeing && (CurrentSpeed > 50.f);
+        
+        MulticastSetFleeFXActive(bShouldPlayFX);
+    }
+}
+
+
 void AWRCreature::BeginPlay()
 {
     Super::BeginPlay();
@@ -237,6 +290,30 @@ AWRCharacter* AWRCreature::GetOwnerCharacter() const
 {
     return IsValid(OwnerPlayer) ? Cast<AWRCharacter>(OwnerPlayer->GetPawn()) : nullptr;
 }
+
+void AWRCreature::MulticastSetFleeFXActive_Implementation(bool bActive)
+{
+    if (FleeFXComponent)
+    {
+        if (bActive)
+        {
+            FleeFXComponent->Activate();
+        }
+        else if (!bActive && FleeFXComponent->IsActive())
+        {
+            FleeFXComponent->Deactivate();
+        }
+    }
+}
+
+void AWRCreature::MulticastPlayFleeSound_Implementation()
+{
+    if (FleeSound)
+    {
+        UGameplayStatics::SpawnSoundAttached(FleeSound, GetRootComponent());
+    }
+}
+
 bool AWRCreature::TryCapture(AWRCharacter* Player)
 {
     AWRGameMode* GM = GetWorld()->GetAuthGameMode<AWRGameMode>();

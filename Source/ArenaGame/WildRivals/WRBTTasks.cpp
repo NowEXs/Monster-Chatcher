@@ -24,6 +24,8 @@ EBTNodeResult::Type UWRBTTask_PickMovePoint::ExecuteTask(UBehaviorTreeComponent&
     {
         AWRCreature* WR_Pawn = Cast<AWRCreature>(Pawn);
         WR_Pawn->ChangeToFleeSpeed();
+        
+        WR_Pawn->MulticastPlayFleeSound();
     }
     else
     {
