@@ -20,7 +20,26 @@ void AWRPlayerState::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLi
     DOREPLIFETIME(AWRPlayerState, Captures);
     DOREPLIFETIME(AWRPlayerState, Companion);
 }
-void AWRGameState::OnRep_Round() { OnRoundChanged.Broadcast(); }
+void AWRGameState::OnRep_Round()
+{
+    if (Round.Phase == EWRRoundPhase::Playing && PreviousPhase != EWRRoundPhase::Playing)
+    {
+        if (BeginRoundSound)
+        {
+            UGameplayStatics::PlaySound2D(this, BeginRoundSound);
+        }
+    }
+    else if (Round.Phase == EWRRoundPhase::Finished && PreviousPhase != EWRRoundPhase::Finished)
+    {
+        if (VictorySound)
+        {
+            UGameplayStatics::PlaySound2D(this, VictorySound);
+        }
+    }
+    
+    PreviousPhase = Round.Phase;
+    OnRoundChanged.Broadcast();
+}
 float AWRGameState::GetRemainingSeconds() const
 {
     return Round.Phase == EWRRoundPhase::Playing ? FMath::Max(0.f, Round.EndsAtServerTime - GetServerWorldTimeSeconds()) : 0.f;

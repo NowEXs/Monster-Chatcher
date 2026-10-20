@@ -54,6 +54,15 @@ public:
     UFUNCTION(BlueprintPure, Category="Wild Rivals") float GetRemainingSeconds() const;
     UFUNCTION(BlueprintPure, Category="Wild Rivals") AWRPlayerState* GetPlayerForTeam(int32 Team) const;
     virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
+    
+    UPROPERTY(EditDefaultsOnly, Category="Wild Rivals|Audio")
+    TObjectPtr<USoundBase> BeginRoundSound;
+
+    UPROPERTY(EditDefaultsOnly, Category="Wild Rivals|Audio")
+    TObjectPtr<USoundBase> VictorySound;
+    
+private:
+    EWRRoundPhase PreviousPhase = EWRRoundPhase::Waiting;
 };
 
 UCLASS()
